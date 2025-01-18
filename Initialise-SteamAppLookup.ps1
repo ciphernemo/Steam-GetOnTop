@@ -23,10 +23,10 @@
 [cmdletBinding(SupportsShouldProcess=$false)]
 param(
 	[Parameter(Position=0, Mandatory=$false)]
-	[System.String]$OutputFile = ".\AppLookup.json"
+	[String]$OutputFile = ".\AppLookup.json"
 	,
 	[Parameter(Position=1, Mandatory=$false)]
-	[System.String]$InputFile = ".\AppLookup.json"
+	[String]$InputFile = ".\AppLookup.json"
 )
 
 Import-Module $PSScriptRoot\Modules\VDFTools
