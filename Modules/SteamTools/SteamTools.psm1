@@ -45,7 +45,7 @@ function ConvertFrom-VDF
 	(
 		[parameter(Mandatory = $true)]
 		[ValidateNotNullOrEmpty()]
-		[System.String[]]$Source
+		[String[]]$Source
 	)
 	$root = New-Object -TypeName PSObject
 	$chain = [ordered]@{}
@@ -107,7 +107,7 @@ function ConvertTo-VDF
 	for ($i = 0; $i -lt $members.Count; $i++)
 	{
 		$member = $members[$i]
-		if ($member.TypeNameOfValue -eq "System.String")
+		if ($member.TypeNameOfValue -eq "String")
 		{
 			$tabIndent = "`t" * $treeDepth
 			$m1 = Format-MemberString $member.Name
