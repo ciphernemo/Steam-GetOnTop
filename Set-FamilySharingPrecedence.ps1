@@ -177,11 +177,11 @@ $Form.Show()
  
 $userTable = New-Object System.Data.DataTable
 $newColumn = $userTable.Columns.Add("ID")
-$newColumn.DataType = [System.String]
+$newColumn.DataType = [String]
 $newColumn = $userTable.Columns.Add("User")
-$newColumn.DataType = [System.String]
+$newColumn.DataType = [String]
 $newColumn = $userTable.Columns.Add("Persona")
-$newColumn.DataType = [System.String]
+$newColumn.DataType = [String]
 
 $steamPath = Get-SteamPath
 $steamConfig = ConvertFrom-VDF (Get-Content "$($steamPath)\Config\Config.vdf")
