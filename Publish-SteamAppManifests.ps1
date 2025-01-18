@@ -35,7 +35,7 @@
 [cmdletBinding(SupportsShouldProcess=$false)]
 param(
 	[Parameter(Mandatory=$false)]
-	[System.String]$LookupTablePath = ".\appLookup.json"
+	[String]$LookupTablePath = ".\appLookup.json"
 	,
 	[Parameter(Mandatory=$false)]
 	[Switch]$IncludeGamesNotOwned
@@ -48,7 +48,7 @@ param(
 	,
 	[Parameter(Mandatory=$false)]
 	[ValidateSet("None", "Standard", "Verbose", "Debug")] 
-	[System.String]$LogLevel = "Standard"
+	[String]$LogLevel = "Standard"
 )
 
 # =========
@@ -89,15 +89,15 @@ param(
 	,
 	[Parameter(Position=1, Mandatory=$true)]
 	[ValidateNotNullOrEmpty()]
-	[System.String[]]$AppName
+	[String[]]$AppName
 	,
 	[Parameter(Position=2, Mandatory=$true)]
 	[ValidateNotNullOrEmpty()]
-	[System.String[]]$SteamLibrary
+	[String[]]$SteamLibrary
 	,
 	[Parameter(Position=3, Mandatory=$true)]
 	[ValidateNotNullOrEmpty()]
-	[System.String[]]$AppFolder
+	[String[]]$AppFolder
 )
 
 	$acf = @"
@@ -313,7 +313,7 @@ param(
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["Name"].Value = "????"
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["Valid"].Value = $false
 			}
-			$dgv.Rows[$_.RowIndex].ErrorText = [System.String]::Empty
+			$dgv.Rows[$_.RowIndex].ErrorText = [String]::Empty
 		}
 		elseif ($dgv.Columns[$_.ColumnIndex].Name -eq "Name") {
 			$dgv.Rows.SharedRow($_.RowIndex).Cells["Query"].Value = "Modified by User"
@@ -325,7 +325,7 @@ param(
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["AppID"].Value = -1
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["Valid"].Value = $false
 			}
-			$dgv.Rows[$_.RowIndex].ErrorText = [System.String]::Empty
+			$dgv.Rows[$_.RowIndex].ErrorText = [String]::Empty
 		}
 	})
 	
@@ -417,7 +417,7 @@ if (Test-Path $LookupTablePath) {
 }
 Write-Log -InputObject "... $($count) IDs enumerated"
 
-$disclaimer = [System.String]::Empty
+$disclaimer = [String]::Empty
 
 if (($IncludeGamesNotOwned -eq $false) -and (Test-Path -Path $steamPath\userdata))
 {
@@ -472,13 +472,13 @@ ForEach ($steamLibrary in $steamLibraries) {
 	$newColumn = $matchTable.Columns.Add("AppID")
 	$newColumn.DataType = [System.Int32]
 	$newColumn = $matchTable.Columns.Add("Name")
-	$newColumn.DataType = [System.String]
+	$newColumn.DataType = [String]
 	$newColumn = $matchTable.Columns.Add("Folder")
-	$newColumn.DataType = [System.String]
+	$newColumn.DataType = [String]
 	$newColumn = $matchTable.Columns.Add("Library")
-	$newColumn.DataType = [System.String]
+	$newColumn.DataType = [String]
 	$newColumn = $matchTable.Columns.Add("Query")
-	$newColumn.DataType = [System.String]
+	$newColumn.DataType = [String]
 	$newColumn = $matchTable.Columns.Add("Valid")
 	$newColumn.DataType = [System.Boolean]
 	#endregion
@@ -628,7 +628,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 	Write-Log -InputObject "Trying (Name -match [Install Directory, Split by ' ']) ..."
 	Write-Log -InputObject "----------------------------------------------------------------------------------------------------"
 	ForEach ($folder in $remaining) {
-		$words = $folder.Split(" ", [System.StringSplitOptions]::RemoveEmptyEntries)
+		$words = $folder.Split(" ", [StringSplitOptions]::RemoveEmptyEntries)
 		$found = $false
 		$patterns = @()
 		For ($i = $words.count; $i -gt 0; $i--) {
@@ -771,7 +771,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 	Write-Log -InputObject "Trying (Name -match [Install Directory, Split by '_']) ..."
 	Write-Log -InputObject "----------------------------------------------------------------------------------------------------"
 	ForEach ($folder in $remaining) {
-		$words = $folder.Split("_", [System.StringSplitOptions]::RemoveEmptyEntries)
+		$words = $folder.Split("_", [StringSplitOptions]::RemoveEmptyEntries)
 		$found = $false
 		$patterns = @()
 		For ($i = $words.count; $i -gt 0; $i--) {
