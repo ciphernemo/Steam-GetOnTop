@@ -1,7 +1,7 @@
 function Write-LogHeader { 
 	param (
 		[Parameter(Position=0, Mandatory=$true)]
-		[System.String]$InputObject
+		[String]$InputObject
 	)
 	Out-File -FilePath $log -Append -InputObject " "
 	Out-File -FilePath $log -Append -InputObject "==========================================================================="
@@ -13,7 +13,7 @@ function Write-LogHeader {
 function Write-LogFooter {
 	param (
 		[Parameter(Position=0, Mandatory=$true)]
-		[System.String]$InputObject
+		[String]$InputObject
 	)
 	Out-File -FilePath $log -Append -InputObject "==========================================================================="
 	Out-File -FilePath $log -Append -InputObject ("Execution halted : " + (Get-Date -Format "F"))
@@ -24,11 +24,11 @@ function Write-LogFooter {
 function Write-Log {
 	param (
 		[Parameter(Position=0, Mandatory=$true)]
-		[System.String]$InputObject
+		[String]$InputObject
 		,
 		[Parameter(Mandatory=$false)]
 		[ValidateSet("Error", "Warning", "Standard", "Verbose", "Debug")] 
-		[System.String]$MessageLevel = "Standard"
+		[String]$MessageLevel = "Standard"
 	)
 	$symbol = switch ($MessageLevel) {
 		"Error" 	{ "!" }
@@ -66,7 +66,7 @@ function Write-Log {
 function Set-LogPath {
 	param (
 		[Parameter(Position=0, Mandatory=$true)]
-		[System.String]$LogPath
+		[String]$LogPath
 	)
 	$script:log = $LogPath
 }
@@ -75,7 +75,7 @@ function Set-LogLevel {
 	param (
 		[Parameter(Position=0, Mandatory=$true)]
 		[ValidateSet("None", "Standard", "Verbose", "Debug")]
-		[System.String]$LogLevel
+		[String]$LogLevel
 	)
 	$script:Level = $LogLevel
 }
