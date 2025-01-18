@@ -1,4 +1,4 @@
-Import-Module .\Modules\LogTools
+Import-Module $PSScriptRoot\Modules\LogTools
 
 #formats a string to trim leading and trailing quote marks
 function Format-MemberString
