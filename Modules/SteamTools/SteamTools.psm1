@@ -1,3 +1,5 @@
+Import-Module .\Modules\LogTools
+
 #formats a string to trim leading and trailing quote marks
 function Format-MemberString
 {
@@ -161,7 +163,7 @@ function Get-SteamPath
 	#search drives for steam.exe file
 	else
 	{
-		Write-Host "Steam client not within the Registry or default location. Searching your drives for Steam..."
+		Write-Log -InputObject "Steam client not within the Registry or default location. Searching your drives for Steam..."
 		#set up system drive exclusions for search
 		[string[]]$paths = @($Env:SystemRoot, $Env:ProgramData, $Env:TEMP, "$Env:SystemRoot\Temp", "$Env:SystemDrive\Recovery")
 		$paths += ("$Env:USERPROFILE\GoogleDrive", "$Env:USERPROFILE\Box")
@@ -172,7 +174,7 @@ function Get-SteamPath
 		foreach ($d in $driveLetters)
 		{
 			$d = $d + ":\"
-			Write-Host "Searching $d drive..."
+			Write-Log -InputObject "Searching $d drive..."
 			#recursively search a drive and add matches to results
 			if ($items = Get-ChildItem -Path $d -Filter "steam.exe" -Exclude $paths -Recurse)
 			{
@@ -189,7 +191,7 @@ function Get-SteamPath
 		else
 		{
 			#no results found
-			Write-Host "Steam not found on the local system. Exiting..."
+			Write-Log -InputObject "Steam not found on the local system. Exiting..."
 			Start-Sleep -Seconds 6
 			exit
 		}
