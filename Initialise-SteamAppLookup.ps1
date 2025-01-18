@@ -29,8 +29,8 @@ param(
 	[System.String]$InputFile = ".\AppLookup.json"
 )
 
-Import-Module .\Modules\VDFTools
-Import-Module .\Modules\LogTools
+Import-Module $PSScriptRoot\Modules\VDFTools
+Import-Module $PSScriptRoot\Modules\LogTools
 
 #find Steam, and if necessary offer choice when a drive search found multiple steam.exe files
 [string[]]$steamPaths = Get-SteamPath
