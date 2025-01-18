@@ -347,8 +347,6 @@ param(
 Import-Module .\Modules\SteamTools
 Import-Module .\Modules\LogTools
 
-Set-Location "D:\_One Drive\OneDrive - The Pennsylvania State University\Personal\_Projects\Steam-GetOnTop"
-
 #region Initialisation
 if ($IncludeGamesNotOwned -eq $true) {
 	Write-Host -ForegroundColor Yellow -BackgroundColor Black "Running with the 'IncludeGamesNotOwned' option set will greatly impact performance, as it will run each query against a list of ~43,000 appIDs. It *decreases* the chances of successful matches due to increased ambiguity, and increases the risk of erroneous matches. If you're okay with that, go nuts."
