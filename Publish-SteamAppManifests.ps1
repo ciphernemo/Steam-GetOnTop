@@ -285,7 +285,7 @@ param(
 			}
 			
 			$folderName = ($matchTable | Where-Object {$_.AppID -eq $id}).Folder
-			if ( ($id -ne -1) -and ($folderName -ne $null) -and ($dgv.Rows.SharedRow($_.RowIndex).Cells["Folder"].Value -ne $folderName) ) {
+			if ( ($id -ne -1) -and ($null -ne $folderName) -and ($dgv.Rows.SharedRow($_.RowIndex).Cells["Folder"].Value -ne $folderName) ) {
 				$dgv.Rows[$_.RowIndex].ErrorText = "AppID is already in list (Folder: $($folderName))"
 				$_.Cancel = $true
 			}
@@ -294,7 +294,7 @@ param(
 			$name = $_.FormattedValue
 			
 			$folderName = ($matchTable | Where-Object {$_.Name -eq $name}).Folder
-			if ( ($name -ne "????") -and ($folderName -ne $null) -and ($dgv.Rows.SharedRow($_.RowIndex).Cells["Folder"].Value -ne $folderName ) ) {
+			if ( ($name -ne "????") -and ($null -ne $folderName) -and ($dgv.Rows.SharedRow($_.RowIndex).Cells["Folder"].Value -ne $folderName ) ) {
 				$dgv.Rows[$_.RowIndex].ErrorText = "AppName is already in list (Folder: $($folderName))"
 				$_.Cancel = $true
 			}
@@ -307,7 +307,7 @@ param(
 			$dgv.Rows.SharedRow($_.RowIndex).Cells["Query"].Value = "Modified by User"
 			$id = $dgv.Rows.SharedRow($_.RowIndex).Cells["AppID"].Value
 			$appinfo = ($steamapplist.applist.apps.app | Where-Object {$_.appID -eq $id})
-			if ($appinfo -ne $null) {
+			if ($null -ne $appinfo) {
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["Name"].Value = $appinfo.Name	
 			} else { 
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["Name"].Value = "????"
@@ -319,7 +319,7 @@ param(
 			$dgv.Rows.SharedRow($_.RowIndex).Cells["Query"].Value = "Modified by User"
 			$name = $dgv.Rows.SharedRow($_.RowIndex).Cells["Name"].Value
 			$appinfo = ($steamapplist.applist.apps.app | Where-Object {$_.Name -eq $name})
-			if ($appinfo -ne $null) {
+			if ($null -ne $appinfo) {
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["AppID"].Value = $appinfo.AppID	
 			} else { 
 				$dgv.Rows.SharedRow($_.RowIndex).Cells["AppID"].Value = -1
@@ -347,6 +347,8 @@ param(
 Import-Module .\Modules\SteamTools
 Import-Module .\Modules\LogTools
 
+Set-Location "D:\_One Drive\OneDrive - The Pennsylvania State University\Personal\_Projects\Steam-GetOnTop"
+
 #region Initialisation
 if ($IncludeGamesNotOwned -eq $true) {
 	Write-Host -ForegroundColor Yellow -BackgroundColor Black "Running with the 'IncludeGamesNotOwned' option set will greatly impact performance, as it will run each query against a list of ~43,000 appIDs. It *decreases* the chances of successful matches due to increased ambiguity, and increases the risk of erroneous matches. If you're okay with that, go nuts."
@@ -370,15 +372,29 @@ New-Item -Path $log -ItemType File -Force  | Out-Null
 
 Write-LogHeader -InputObject "Publish-SteamAppManifests.ps1"
 
-# Get steam library locations
-$steamPath = "$((Get-ItemProperty HKCU:\Software\Valve\Steam\).SteamPath)".Replace('/','\')
-Write-Log -InputObject "Steam is installed in '$($steamPath)'"
-[array]$steamLibraries += $steamPath
-$config = ConvertFrom-VDF (Get-Content "$($steamPath)\config\config.vdf")
-ForEach($library in ($config.InstallConfigStore.Software.Valve.Steam | Get-Member | Where-Object {$_.Name -match "BaseInstallFolder"})) {
-	$path = ($config.InstallConfigStore.Software.Valve.Steam.($library.name)).Replace("\\", "\")
-	Write-Log -InputObject "Additional Steam library found in '$($path)'"
-	[array]$steamLibraries += $path
+# Get steam install location and then all library locations
+[string[]]$steamLibraries = @()
+[string[]]$steamPaths = Get-SteamPath
+foreach ($mySteamPath in $steamPaths)
+{
+	#get all Steam library paths
+	$vdfLibraryFile = $mySteamPath + "\steamapps\libraryfolders.vdf"
+	Write-Host "`nPath to library config file: $vdfLibraryFile `n"
+	$vdfLibraryContent = Get-Content $vdfLibraryFile
+	$vdfLibraryObject = ConvertFrom-VDF -Source $vdfLibraryContent
+	[string[]]$libIDs = @()
+	$vdfLibraryObject.'"libraryfolders"'.PSObject.Properties | ForEach-Object { $libIDs += $_.Name }
+	foreach ($i in $libIDs)
+	{
+		$thisPath = Format-MemberString ($vdfLibraryObject.'"libraryfolders"'.$i.'"path"')
+		$thisPath = $thisPath.Replace("\\", "\")
+		if (Test-Path "$thisPath\steamapps\common")
+		{
+			$id = $i.Replace("`"", "")
+			Write-Log -InputObject "Found library ID $id with path $thisPath"
+			$steamLibraries += $thisPath
+		}
+	}
 }
 
 # Preload Steam App List
@@ -405,35 +421,41 @@ Write-Log -InputObject "... $($count) IDs enumerated"
 
 $disclaimer = [System.String]::Empty
 
-if ($IncludeGamesNotOwned -eq $false) {
+if (($IncludeGamesNotOwned -eq $false) -and (Test-Path -Path $steamPath\userdata))
+{
 	# Set the disclaimer for future warnings
 	$disclaimer = " in games owned by local users"
 	
 	# Get games owned by local users
 	Write-Log -InputObject "Loading AppIDs for games owned by Local Users..."
 	$libraryIDs = @()
-	ForEach ($user in (get-childitem "$($steamPath)\userdata" | Where-Object {$_.BaseName -ne "0"})) {
-		try {
+	ForEach ($user in (get-childitem "$($steamPath)\userdata" | Where-Object {$_.BaseName -ne "0"}))
+	{
+		try
+		{
 			[xml]$xmlLibrary = (Invoke-WebRequest "http://steamcommunity.com/profiles/$(Get-SteamID64 -SteamID3 ($user.BaseName.ToInt32($null)))/games?tab=all&xml=1" -UseBasicParsing).Content
-			if ($xmlLibrary.gamesList.error -eq $null) {
+			if ($null -eq $xmlLibrary.gamesList.error)
+			{
 				$libraryIDs += $xmlLibrary.gamesList.games.game.appID | Where-Object {$_ -notin $libraryIDs}
-			} else {
+			}
+			else
+			{
 				$errortext = $xmlLibrary.gamesList.error."#cdata-section"
 				$username = $xmlLibrary.gamesList.steamID."#cdata-section"
 				Write-Log -InputObject "Could not retrieve owned games for '$($username)' - Error: $($errortext)" -MessageLevel "Warning"
 			}
 		}
-		catch {
-			Write-Log -InputObject "Could not retrieve owned games for '$($user)' - Error: $($_.Exception)" -MessageLevel "Warning"
-		}
+		catch { Write-Log -InputObject "Could not retrieve owned games for '$($user)' - Error: $($_.Exception)" -MessageLevel "Warning" }
 	}
 	Write-Log -InputObject "... $($libraryIDs.count) IDs enumerated"
-	
+
 	# Filter games to owned only
 	Write-Log -InputObject "Filtering Apps to owned only... (this may take a minute or two)"
 	$mysteamapplist = $steamapplist.applist.apps.app | Where-Object {$_.appid -in $libraryIDs }
 	Write-Log -InputObject "... Done!"
-} else {
+}
+else
+{
 	$mysteamapplist = $steamapplist.applist.apps.app
 }
 
@@ -443,8 +465,8 @@ if ($IncludeGamesNotOwned -eq $false) {
 
 ForEach ($steamLibrary in $steamLibraries) {
 	# Get Folders
-	Write-Log -InputObject "Getting install directories from $($steamLibrary)\SteamApps\Common ..."
-	$folders = Get-ChildItem "$($steamLibrary)\SteamApps\Common\" | Select-Object -Property Name
+	Write-Log -InputObject "Getting install directories from $($steamLibrary)\ateamApps\common ..."
+	$folders = Get-ChildItem "$($steamLibrary)\steamapps\common\" | Select-Object -Property Name
 	Write-Log -InputObject "... $($folders.count) directories enumerated"
 
 	# Build a table to store relevant data
@@ -474,13 +496,13 @@ ForEach ($steamLibrary in $steamLibraries) {
 	Write-Log -InputObject "----------------------------------------------------------------------------------------------------"
 	ForEach ($folder in $remaining) {
 		$id = ($appLookup | Where-Object {$_.installdir -eq $folder }).appid
-		if ($id -ne $null) {
+		if ($null -ne $id) {
 			if ($id.Count -eq 1) {
 				$name = ($appLookup | Where-Object {$_.appid -eq $id }).name
-				if ($name -eq $null) {
+				if ($null -eq $name) {
 					$name = ($mysteamapplist | Where-Object {$_.appid -eq $id }).name
 				}
-				if ($name -ne $null) {
+				if ($null -ne $name) {
 					$path = "$($steamPath)\SteamApps\appmanifest_$($id).acf"
 					if ((Test-Path $path) -eq $false) {
 						Write-Log -InputObject "App manifest for '$($name)' is missing"
@@ -512,7 +534,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 	Write-Log -InputObject "----------------------------------------------------------------------------------------------------"
 	ForEach ($folder in $remaining) {
 		$apps = ($mysteamapplist | Where-Object {$_.name -eq $folder })
-		if ($apps -ne $null) {
+		if ($null -ne $apps) {
 			$definitiveMatch = $false;
 			ForEach ($app in $apps) {
 				$path = "$($steamPath)\SteamApps\appmanifest_$($app.AppID).acf"
@@ -561,7 +583,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 	Write-Log -InputObject "----------------------------------------------------------------------------------------------------"
 	ForEach ($folder in $remaining) {
 		$apps = ($mysteamapplist | Where-Object {$_.name -match $folder })
-		if ($apps -ne $null) {
+		if ($null -ne $apps) {
 			$definitiveMatch = $false;
 			ForEach ($app in $apps) {
 				$path = "$($steamPath)\SteamApps\appmanifest_$($app.AppID).acf"
@@ -621,7 +643,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 		ForEach ($pattern in $patterns) {
 			if (-not $found) {
 				$apps = ($mysteamapplist | Where-Object {$_.name -match $pattern })
-				if ($apps -ne $null) {
+				if ($null -ne $apps) {
 					$definitiveMatch = $false;
 					ForEach ($app in $apps) {
 						$path = "$($steamPath)\SteamApps\appmanifest_$($app.AppID).acf"
@@ -680,7 +702,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 		}
 		$regex = (Select-String -InputObject $folder -Pattern "(([A-Z]{1}[a-z]+)(?:\s*))+" -CaseSensitive)
 		$words = $null
-		if ($regex -ne $null) {
+		if ($null -ne $regex) {
 			$captures = $regex.Matches.Groups[$regex.Matches.Groups.count - 1].Captures
 			if ($captures.count -gt 1) {
 				$words = $captures.Value
@@ -698,7 +720,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 		ForEach ($pattern in $patterns) {
 			if (-not $found) {
 				$apps = ($mysteamapplist | Where-Object {$_.name -match $pattern })
-				if ($apps -ne $null) {
+				if ($null -ne $apps) {
 					$definitiveMatch = $false;
 					ForEach ($app in $apps) {
 						$path = "$($steamPath)\SteamApps\appmanifest_$($app.AppID).acf"
@@ -764,7 +786,7 @@ ForEach ($steamLibrary in $steamLibraries) {
 		ForEach ($pattern in $patterns) {
 			if (-not $found) {
 				$apps = ($mysteamapplist | Where-Object {$_.name -match $pattern })
-				if ($apps -ne $null) {
+				if ($null -ne $apps) {
 					$definitiveMatch = $false;
 					ForEach ($app in $apps) {
 						$path = "$($steamPath)\SteamApps\appmanifest_$($app.AppID).acf"
