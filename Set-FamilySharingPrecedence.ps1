@@ -19,7 +19,7 @@ param (
 [System.Reflection.Assembly]::LoadWithPartialName("System.Windows.Forms") | Out-Null
 [System.Reflection.Assembly]::LoadWithPartialName("System.Drawing") | Out-Null
 
-Import-Module .\Modules\SteamTools
+Import-Module $PSScriptRoot\Modules\SteamTools
 
 # ---------
 # Main
