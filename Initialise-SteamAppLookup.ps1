@@ -31,7 +31,27 @@ param(
 
 Import-Module .\Modules\VDFTools
 
-$steamPath = "$((Get-ItemProperty HKCU:\Software\Valve\Steam\).SteamPath)".Replace('/','\')
+#find Steam, and if necessary offer choice when a drive search found multiple steam.exe files
+[string[]]$steamPaths = Get-SteamPath
+[string]$mySteamPath = $steamPaths[0]
+if ($steamPaths.Count -gt 1)
+{
+	[System.Management.Automation.Host.ChoiceDescription[]]$choicesSteam = @()
+	$choiceTextSteam = [String]::Empty
+	$i = 0
+	foreach ($path in $steamPaths)
+	{
+		$choicesSteam += "`&$i"
+		$choiceTextSteam += "$i -- $path`n"
+		$i++
+	}
+	$titleSteam = "`nThe following possible Steam paths were found on your system:" + $choiceTextSteam
+	$promptSteam = "Please choose the location of your Steam install..."
+	$mySteamChoice = $host.UI.PromptForChoice($titleSteam, $promptSteam, $choicesSteam, 0)
+	$mySteamPath = $steamPaths[$mySteamChoice]
+	Write-Host "`n"
+}
+Write-Host "Using Steam client found at $mySteamPath"
 
 $LookupTablePath = ".\AppLookup.json"
 if (Test-Path $LookupTablePath) {
@@ -44,7 +64,7 @@ if ($AppLookup -ne $null) {
 	[array]$apps += $AppLookup
 }
 
-ForEach ($file in (Get-ChildItem "$($steamPath)\SteamApps\*.acf") ) {
+ForEach ($file in (Get-ChildItem "$($mySteamPath)\SteamApps\*.acf") ) {
 	$acf = ConvertFrom-VDF (Get-Content $file -Encoding UTF8)
 	if ($acf.AppState.appID -notin $apps.AppID) {
 		[array]$apps += $acf.AppState | Select-Object -Property AppId, Name, InstallDir
