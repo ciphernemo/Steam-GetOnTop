@@ -30,6 +30,7 @@ param(
 )
 
 Import-Module .\Modules\VDFTools
+Import-Module .\Modules\LogTools
 
 #find Steam, and if necessary offer choice when a drive search found multiple steam.exe files
 [string[]]$steamPaths = Get-SteamPath
@@ -49,9 +50,9 @@ if ($steamPaths.Count -gt 1)
 	$promptSteam = "Please choose the location of your Steam install..."
 	$mySteamChoice = $host.UI.PromptForChoice($titleSteam, $promptSteam, $choicesSteam, 0)
 	$mySteamPath = $steamPaths[$mySteamChoice]
-	Write-Host "`n"
+	Write-Log -InputObject "`n"
 }
-Write-Host "Using Steam client found at $mySteamPath"
+Write-Log -InputObject "Using Steam client found at $mySteamPath"
 
 $LookupTablePath = ".\AppLookup.json"
 if (Test-Path $LookupTablePath) {
