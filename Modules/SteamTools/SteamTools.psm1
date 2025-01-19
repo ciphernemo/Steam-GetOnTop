@@ -1,17 +1,6 @@
-Import-Module $PSScriptRoot\Modules\LogTools
+# --------- Functions ---------
 
-#formats a string to trim leading and trailing quote marks
-function Format-MemberString
-{
-	param
-	(
-		[parameter(Mandatory = $true)]
-		[string]$myMember
-	)
-	return (($myMember).Substring(1, $myMember.Length - 2))
-}
-
-#formats a path to replace all forward slashes with back slashes and return its proper capitalization
+# Formats a path to replace all forward slashes with back slashes and return its proper capitalization
 function Format-ProperPath
 {
 	param
@@ -37,7 +26,18 @@ function Format-ProperPath
 	return $properPath;
 }
 
-#parses a VDF and converts it to a custom object
+# Formats a string to trim leading and trailing quote marks
+function Format-MemberString
+{
+	param
+	(
+		[parameter(Mandatory = $true)]
+		[string]$myMember
+	)
+	return (($myMember).Substring(1, $myMember.Length - 2))
+}
+
+# Parses a VDF and converts it to a custom object
 #	example: $vdf = ConvertFrom-VDF -source (Get-Content "C:\localconfig.vdf")
 function ConvertFrom-VDF
 {
@@ -47,6 +47,11 @@ function ConvertFrom-VDF
 		[ValidateNotNullOrEmpty()]
 		[String[]]$Source
 	)
+	# Make one to two matches per line of quoted sections, separate by tabs only when next to quote marks,
+	#	match empty and single character quoted sections,
+	#	include escaped quotes \" in matches but don't make separate matches for \"",
+	#	and include leading and trailing quote marks for safety as they will be removed when converting back to VDF
+	$pattern = '(?<=^|\t|{|\n)"((?:[^"\\]|\\[\\"])*)"(?=\t|\n|$|})'
 	$root = New-Object -TypeName PSObject
 	$chain = [ordered]@{}
 	$treeDepth = 0
@@ -55,22 +60,20 @@ function ConvertFrom-VDF
 	$i = 0
 	foreach ($line in $Source)
 	{
-		#make one to two matches per line of quoted sections, separate by tabs only when next to quote marks,
-		#	match empty and single character quoted sections,
-		#	include escaped quotes \" in matches but don't make separate matches for \"",
-		#	and include leading and trailing quote marks for safety as they will be removed when converting back to VDF
-		$pattern = '(?<=^|\t|{|\n)"((?:[^"\\]|\\[\\"])*)"(?=\t|\n|$|})'
 		$quotedElements = (Select-String -Pattern $pattern -InputObject $line -AllMatches).Matches
-		#create a new sub object
+		# Create a new sub object
 		if ($quotedElements.Count -eq 1)
 		{
+			$myValue = Format-MemberString ($quotedElements[0].Value)
 			$element = New-Object -TypeName PSObject
-			Add-Member -InputObject $parent -MemberType NoteProperty -Name $quotedElements[0].Value -Value $element
+			Add-Member -InputObject $parent -MemberType NoteProperty -Name $myValue -Value $element
 		}
-		#create a new string hash
+		# Create a new string hash
 		elseif ($quotedElements.Count -eq 2)
 		{
-			Add-Member -InputObject $element -MemberType NoteProperty -Name $quotedElements[0].Value -Value $quotedElements[1].Value
+			$myValue1 = Format-MemberString ($quotedElements[0].Value)
+			$myValue2 = Format-MemberString ($quotedElements[1].Value)
+			Add-Member -InputObject $element -MemberType NoteProperty -Name $myValue1 -Value $myValue2
 		}
 		elseif ($line -match "{")
 		{
@@ -91,7 +94,7 @@ function ConvertFrom-VDF
 	return $root
 }
 
-#converts an object to a VDF file
+# Converts an object to a VDF file
 #	example: [System.IO.File]::WriteAllLines($vdfFile, (ConvertTo-VDF -Source $vdfObject))
 function ConvertTo-VDF
 {
@@ -110,15 +113,15 @@ function ConvertTo-VDF
 		if ($member.TypeNameOfValue -eq "String")
 		{
 			$tabIndent = "`t" * $treeDepth
-			$m1 = Format-MemberString $member.Name
-			$m2 = Format-MemberString ($Source.($member.Name))
+			$m1 = $member.Name
+			$m2 = $Source.($member.Name)
 			$output += $tabIndent + "`"" + $m1 + "`"`t`t`"" + $m2 + "`"`n"
 		}
 		elseif ($member.TypeNameOfValue -eq "System.Management.Automation.PSCustomObject")
 		{
 			$tabIndent = "`t" * $treeDepth
 			$element = $Source.($member.Name)
-			$output += $tabIndent + "`"" + (Format-MemberString $member.Name) + "`"`n"
+			$output += $tabIndent + "`"" + ($member.Name) + "`"`n"
 			$output += $tabIndent + "{`n"
 			$treeDepth++
 			$output += ConvertTo-VDF -Source $element -treeDepth $treeDepth
@@ -133,10 +136,10 @@ function ConvertTo-VDF
 	return $output
 }
 
-#finds the Steam install path
+# Finds the Steam install path
 function Get-SteamPath
 {
-	#search for Steam in registry keys
+	# Search for Steam in registry keys
 	[string[]]$hive = @("HKCU:", "HKLM:")
 	foreach ($h in $hive)
 	{
@@ -154,27 +157,27 @@ function Get-SteamPath
 			continue
 		}
 	}
-	#test for default install path
+	# Test for default install path
 	$pfx86 = "${Env:ProgramFiles(x86)}"
 	if (Test-Path -Path "$pfx86\Steam\steam.exe")
 	{
 		return "$pfx86\Steam\steam.exe"
 	}
-	#search drives for steam.exe file
+	# Search drives for steam.exe file
 	else
 	{
-		Write-Log -InputObject "Steam client not within the Registry or default location. Searching your drives for Steam..."
-		#set up system drive exclusions for search
+		Write-Host "Steam client not within the Registry or default location. Searching your drives for Steam..."
+		# Set up system drive exclusions for search
 		[string[]]$paths = @($Env:SystemRoot, $Env:ProgramData, $Env:TEMP, "$Env:SystemRoot\Temp", "$Env:SystemDrive\Recovery")
 		$paths += ("$Env:USERPROFILE\GoogleDrive", "$Env:USERPROFILE\Box")
 		if ($Env:OneDrive) { $paths += $Env:OneDrive }
-		#get all drives on the system
+		# Get all drives on the system
 		[string[]]$driveLetters = Get-PSDrive | Select-Object -ExpandProperty "Name" | Select-String -Pattern '^[a-z]$'
 		[string[]]$results = @()
 		foreach ($d in $driveLetters)
 		{
 			$d = $d + ":\"
-			Write-Log -InputObject "Searching $d drive..."
+			Write-Host "Searching $d drive..."
 			#recursively search a drive and add matches to results
 			if ($items = Get-ChildItem -Path $d -Filter "steam.exe" -Exclude $paths -Recurse)
 			{
@@ -190,14 +193,13 @@ function Get-SteamPath
 		}
 		else
 		{
-			#no results found
-			Write-Log -InputObject "Steam not found on the local system. Exiting..."
+			# No results found
+			Write-Host "Steam not found on the local system. Exiting..."
 			Start-Sleep -Seconds 6
 			exit
 		}
 	}
 }
-
 
 Function Get-SteamID64
 {
