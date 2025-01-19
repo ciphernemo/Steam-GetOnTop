@@ -1,17 +1,17 @@
-# Steam... Get on top!
+# Steam... Get on top! 1.1
 
 ## SUMMARY
 	
 This is a suite of PowerShell scripts to get on top of the burden of managing an unwieldy Steam library. Presently, it consists of:
 - VDFTools module: Adds ConvertTo-VDF and ConvertFrom-VDF functions to powershell, to parse Valve Data Files into usable data objects.
 - Publish-SteamAppManifests: Scans install folders in <steam>\SteamApps\Common and creates missing App Manifests. Greatly simplifies library migration/recovery!
-- Initialize-SteamAppLookup: Builds a JSON data file containing a lookup table that allows correlation of Steam AppIDs, Names and Install directories - not hugely useful, but speeds up Publish-SteamAppManifests!
+- Create-SteamAppLookup: Builds a JSON data file containing a lookup table that allows correlation of Steam AppIDs, Names and Install directories - not hugely useful, but speeds up Publish-SteamAppManifests!
 - Set-FamilySharingPrecedence: Allows you to set the order of precedence for library sharing. The Steam client only recognises a single lender (even if multiple users are sharing the same game with you) so this gives some control over precedence, otherwise it is determined chronologically according to who set up library sharing first.
 
 ## REQUIREMENTS
 
 - Powershell 3.0
-- .NET Framework
+- .NET Framework included with Windows 10/11
 - Steam
 - Internet connection (to grab AppIDs and Names directly from Steam)
 
@@ -21,12 +21,12 @@ This is a suite of PowerShell scripts to get on top of the burden of managing an
 
 ####	Getting Started
 	
-- Copy the files and subfolders in this directory to a sensible location on your local computer. For the sake of this guide, let's copy to 'C:\Scripts\Steam-GetOnTop'.
-- Run PowerShell
-- Set the location to where ever you copied the files. eg: Set-Location "C:\Scripts\Steam-GetOnTop" (cd "C:\Scripts\Steam-GetOnTop" will work too)
-- Exit Steam
-- Run .\Publish-SteamAppManifests.ps1 (Run Get-Help .\Publish-SteamAppManifests.ps1 for details on command line parameters)
-- Watch the logging text scroll by
+- Get the latest Zip Download release and extract it to any location on your system.
+- Exit Steam.
+- Launch PowerShell.
+- _OPTIONAL:_ Type `.\Create-SteamAppLookup.ps1` and press Enter to generate an AppLookup.json file of Steam apps listed in your Steam config files.
+- Type `.\Publish-SteamAppManifests.ps1` and press Enter. Alternartively, type `Get-Help .\Publish-SteamAppManifests.ps1` for details on command line parameters.
+- The script will report on the work it's doing.
 - When the 'Sanity Check' window pops up, look through each row and confirm that a sensible match has been made:
 	+ Ensure the 'Valid?' checkbox is ticked for each app you'd like to create a manifest for
 	+ Uncheck the 'Valid?' checkbox for anything you don't want a manifest for - install directories remain after an app has been uninstalled, and some matches may not be quite accurate
@@ -36,7 +36,7 @@ This is a suite of PowerShell scripts to get on top of the burden of managing an
 
 ####	How It Works
 	
-- Check registry for Steam root path
+- Check registry for Steam root path, checks default Steam install location, and finally searches for Steam on all local drives if needed
 - Check <steam root>\config\config.vdf for additional libraries
 - Download a complete list of Steam apps from http://api.steampowered.com/ISteamApps/GetAppList/v0001/
 - Load a lookup table that contains AppIDs, Names and Install Directories (default: .\AppLookup.json)
@@ -60,17 +60,16 @@ This is a suite of PowerShell scripts to get on top of the burden of managing an
 
 ####	Getting Started
 
-- Copy the files and subfolders in this directory to a sensible location on your local computer. For the sake of this guide, let's copy to 'C:\Scripts\Steam-GetOnTop'.
-- Run PowerShell
-- Set the location to where ever you copied the files. eg: Set-Location "C:\Scripts\Steam-GetOnTop" (cd "C:\Scripts\Steam-GetOnTop" will work too)
-- Exit Steam
-- Run .\Set-FamilySharingPrecedence.ps1
+- Get the latest Zip Download release and extract it to any location on your system.
+- Exit Steam.
+- Launch PowerShell.
+- Type `.\Set-FamilySharingPrecedence.ps1` and press Enter.
 - Order the list by dragging and dropping. It is recommended to set less frequent users toward the top of the list.
-- Click accept changes
+- Select accept changes
 
 ####	How It Works
 	
-- Check registry for Steam root path
+- Check registry for Steam root path, checks default Steam install location, and finally searches for Steam on all local drives if needed
 - Get InstallConfigStore->AuthorizedDevice from <Steam root>\config\config.vdf
 - Match against usernames/personae in <Steam root>\config\loginusers.vdf
 - Create a sortable table and present it to the user
