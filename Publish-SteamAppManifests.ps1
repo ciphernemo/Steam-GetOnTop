@@ -407,7 +407,7 @@ foreach ($mySteamPath in $steamPaths)
 		{
 			try
 			{
-				[xml]$xmlLibrary = (Invoke-WebRequest $steamProfile[0]$(Get-SteamID64 -SteamID3 ($user.BaseName.ToInt32($null)))$steamProfile[1] -UseBasicParsing).Content
+				[xml]$xmlLibrary = (Invoke-WebRequest "$steamProfile[0]$(Get-SteamID64 -SteamID3 ($user.BaseName.ToInt32($null)))$steamProfile[1]" -UseBasicParsing).Content
 				if ($null -eq $xmlLibrary.gamesList.error)
 				{
 					$libraryIDs += $xmlLibrary.gamesList.games.game.appID | Where-Object {$_ -notin $libraryIDs}
